@@ -24,18 +24,18 @@ import { SharesController } from './sharing/shares.controller';
 import { PublicSharesController } from './sharing/public-shares.controller';
 import { SharesService } from './sharing/shares.service';
 import { QuotaService } from './quota/quota.service';
-// SLICE: import { BillingController } from './billing/billing.controller';
-// SLICE: import { BillingService } from './billing/billing.service';
-// SLICE: import { StripeProvider } from './billing/providers/stripe.provider';
-// SLICE: import { PaymeProvider } from './billing/providers/payme.provider';
-// SLICE: import { ClickProvider } from './billing/providers/click.provider';
-// SLICE: import { UzumProvider } from './billing/providers/uzum.provider';
-// SLICE: import { InvoicesService } from './billing/invoices.service';
-// SLICE: import { PaymeController } from './billing/payme.controller';
+import { BillingController } from './billing/billing.controller';
+import { BillingService } from './billing/billing.service';
+import { StripeProvider } from './billing/providers/stripe.provider';
+import { PaymeProvider } from './billing/providers/payme.provider';
+import { ClickProvider } from './billing/providers/click.provider';
+import { UzumProvider } from './billing/providers/uzum.provider';
+import { InvoicesService } from './billing/invoices.service';
+import { PaymeController } from './billing/payme.controller';
 // SLICE: import { AdminController } from './admin/admin.controller';
 // SLICE: import { AdminService } from './admin/admin.service';
-// SLICE: import { AccountController } from './account/account.controller';
-// SLICE: import { AccountService } from './account/account.service';
+import { AccountController } from './account/account.controller';
+import { AccountService } from './account/account.service';
 
 @Global()
 @Module({
@@ -68,10 +68,10 @@ export class CoreModule {}
     UploadsController,
     SharesController,
     PublicSharesController,
-    // SLICE: BillingController,
-    // SLICE: PaymeController,
+    BillingController,
+    PaymeController,
     // SLICE: AdminController,
-    // SLICE: AccountController,
+    AccountController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: RateLimitGuard },
@@ -85,14 +85,14 @@ export class CoreModule {}
     UploadsService,
     SharesService,
     QuotaService,
-    // SLICE: BillingService,
-    // SLICE: StripeProvider,
-    // SLICE: PaymeProvider,
-    // SLICE: ClickProvider,
-    // SLICE: UzumProvider,
-    // SLICE: InvoicesService,
+    BillingService,
+    StripeProvider,
+    PaymeProvider,
+    ClickProvider,
+    UzumProvider,
+    InvoicesService,
     // SLICE: AdminService,
-    // SLICE: AccountService,
+    AccountService,
   ],
 })
 export class AppModule {}

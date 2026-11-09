@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import { json } from 'express';
+import { json, type NextFunction, type Request, type Response } from 'express';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { allowedOrigins } from './config';
@@ -17,6 +17,13 @@ export async function createApp(opts: { logger?: boolean } = {}) {
   app.use(helmet());
   // Stripe needs the raw body to verify signatures.
   app.use(json({ limit: '2mb', verify: (req, _res, buf) => ((req as unknown as { rawBody: Buffer }).rawBody = buf) }));
+  // Payme expects JSON-RPC parse errors as HTTP 200 with code -32700.
+  app.use((err: { type?: string }, req: Request, res: Response, next: NextFunction) => {
+    if (err?.type === 'entity.parse.failed' && req.path.startsWith('/billing/payme')) {
+      return res.status(200).json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: { uz: 'JSON xato', ru: 'Ошибка парсинга JSON', en: 'Parse error' } } });
+    }
+    next(err);
+  });
   app.use(cookieParser());
   app.use(metricsMiddleware);
   app.enableCors({ origin: allowedOrigins(), credentials: true });
