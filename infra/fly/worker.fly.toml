@@ -6,7 +6,7 @@ primary_region = "fra"
   dockerfile = "../../apps/api/Dockerfile"
 
 [processes]
-  worker = "node dist/worker.js"
+  worker = "sh ./docker-entrypoint.sh worker"
 
 [env]
   NODE_ENV = "production"

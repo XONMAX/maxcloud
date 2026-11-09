@@ -54,7 +54,7 @@ services:
   worker:
     profiles: [full]
     build: { context: ., dockerfile: apps/api/Dockerfile }
-    command: ['node', 'dist/worker.js']
+    command: ['sh', './docker-entrypoint.sh', 'worker']
     env_file: apps/api/.env
     environment:
       DATABASE_URL: postgresql://maxcloud:maxcloud@postgres:5432/maxcloud

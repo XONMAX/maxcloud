@@ -7,7 +7,7 @@ primary_region = "fra"
   dockerfile = "../../apps/api/Dockerfile"
 
 [deploy]
-  release_command = "npx prisma migrate deploy"
+  release_command = "./node_modules/.bin/prisma migrate deploy"
   strategy = "rolling"
 
 [env]
