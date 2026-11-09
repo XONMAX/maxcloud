@@ -14,3 +14,4 @@ apps/mobile/.dart_tool
 apps/mobile/build
 tsconfig.tsbuildinfo
 next-env.d.ts
+*.rdb
