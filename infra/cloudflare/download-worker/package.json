@@ -1,0 +1,7 @@
+{
+  "name": "@maxcloud/download-worker",
+  "private": true,
+  "scripts": { "deploy": "wrangler deploy", "dev": "wrangler dev" },
+  "dependencies": { "aws4fetch": "1.0.20" },
+  "devDependencies": { "wrangler": "4.40.0", "@cloudflare/workers-types": "4.20250920.0" }
+}

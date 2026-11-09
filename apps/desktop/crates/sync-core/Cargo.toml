@@ -1,0 +1,7 @@
+[package]
+name = "sync-core"
+edition.workspace = true
+version.workspace = true
+description = "Pure two-way sync planning for MaxCloud desktop (no I/O, fully unit tested)"
+
+[dependencies]

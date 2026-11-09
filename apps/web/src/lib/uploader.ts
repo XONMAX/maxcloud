@@ -171,7 +171,11 @@ class Uploader {
           for (let attempt = 0; ; attempt++) {
             if (ctrl.signal.aborted) return;
             try {
-              await waitOnline();
+              if (!navigator.onLine) {
+                this.patch(id, { state: 'paused-offline' });
+                await waitOnline();
+                this.patch(id, { state: 'uploading' });
+              }
               const url = await urlFor(n, attempt > 0);
               const etag = await putPart(url, blob, (loaded) => {
                 progress.set(n, loaded);
@@ -185,9 +189,9 @@ class Uploader {
               if (ctrl.signal.aborted) return;
               if (e instanceof ApiError && e.status < 500 && e.status !== 429) throw e; // upload expired / forbidden: give up
               progress.set(n, 0);
-              this.patch(id, { state: navigator.onLine ? 'uploading' : 'paused-offline' });
-              await sleep(Math.min(30_000, 1000 * 2 ** attempt) * (0.5 + Math.random()));
-              this.patch(id, { state: 'uploading' });
+              report();
+              // Offline: wait for the 'online' event (next loop turn). Online: exponential backoff with jitter.
+              if (navigator.onLine) await sleep(Math.min(30_000, 1000 * 2 ** attempt) * (0.5 + Math.random()));
             }
           }
         }

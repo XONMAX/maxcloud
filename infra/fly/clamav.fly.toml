@@ -1,0 +1,18 @@
+# clamd reachable only on Fly's private network (maxcloud-clamav.internal:3310).
+app = "maxcloud-clamav"
+primary_region = "fra"
+
+[build]
+  image = "clamav/clamav:stable"
+
+[[files]]
+  guest_path = "/etc/clamav/clamd.conf"
+  local_path = "../clamav/clamd.conf"
+
+[[services]]
+  internal_port = 3310
+  protocol = "tcp"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "2gb"

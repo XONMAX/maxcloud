@@ -1,0 +1,77 @@
+# Local development stack. `pnpm dev:setup` runs this (when Docker is available) then migrates + seeds.
+# App processes (api, worker, web) run on the host with hot reload: `pnpm dev`.
+# `docker compose --profile full up` also runs api/worker/web in containers (prod-like).
+name: maxcloud
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: maxcloud
+      POSTGRES_PASSWORD: maxcloud
+      POSTGRES_DB: maxcloud
+    ports: ['5432:5432']
+    volumes: [pgdata:/var/lib/postgresql/data, ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro]
+    healthcheck: { test: ['CMD-SHELL', 'pg_isready -U maxcloud'], interval: 5s, retries: 20 }
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports: ['6379:6379']
+    volumes: [redisdata:/data]
+    healthcheck: { test: ['CMD', 'redis-cli', 'ping'], interval: 5s, retries: 20 }
+
+  # S3-compatible storage for dev. (MinIO's open-source server was archived in 2025; VersityGW is Apache-2.0 and maintained.)
+  s3:
+    image: versity/versitygw:latest
+    command: ['--access', 'maxcloud', '--secret', 'maxcloud-dev-secret', '--port', ':7070', 'posix', '/data']
+    ports: ['7070:7070']
+    volumes: [s3data:/data]
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ['8025:8025', '1025:1025'] # UI on http://localhost:8025
+
+  clamav:
+    image: clamav/clamav:stable
+    profiles: [scan] # ~1.2 GB RAM for signatures; enable with --profile scan
+    ports: ['3310:3310']
+    volumes: [./infra/clamav/clamd.conf:/etc/clamav/clamd.conf:ro]
+
+  api:
+    profiles: [full]
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    env_file: apps/api/.env
+    environment:
+      DATABASE_URL: postgresql://maxcloud:maxcloud@postgres:5432/maxcloud
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://s3:7070
+      S3_PUBLIC_ENDPOINT: http://localhost:7070
+      SMTP_URL: smtp://mailpit:1025
+    ports: ['4000:4000']
+    depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_healthy }, s3: { condition: service_started } }
+
+  worker:
+    profiles: [full]
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    command: ['node', 'dist/worker.js']
+    env_file: apps/api/.env
+    environment:
+      DATABASE_URL: postgresql://maxcloud:maxcloud@postgres:5432/maxcloud
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://s3:7070
+      SMTP_URL: smtp://mailpit:1025
+    depends_on: [api]
+
+  web:
+    profiles: [full]
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    environment:
+      API_INTERNAL_URL: http://api:4000
+    ports: ['3000:3000']
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  redisdata:
+  s3data:

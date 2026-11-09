@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+members = ["crates/sync-core", "crates/sync-agent"]
+# src-tauri is built separately (needs WebKitGTK/WebView2): `cd src-tauri && cargo tauri build`
+exclude = ["src-tauri"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "UNLICENSED"

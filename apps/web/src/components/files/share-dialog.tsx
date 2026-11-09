@@ -41,7 +41,12 @@ export function ShareDialog({ node, onClose }: { node: NodeDto | null; onClose: 
     retry: false,
   });
 
-  const copy = (url: string) => navigator.clipboard.writeText(url).then(() => toast.success('Link copied'));
+  // Clipboard can be refused (insecure context, permissions): never let that break the flow.
+  const copy = (url: string) =>
+    navigator.clipboard
+      .writeText(url)
+      .then(() => toast.success('Link copied'))
+      .catch(() => toast.message('Link created', { description: url }));
 
   return (
     <Dialog open={!!node} onOpenChange={(o) => !o && onClose()}>
@@ -62,10 +67,10 @@ export function ShareDialog({ node, onClose }: { node: NodeDto | null; onClose: 
                 expiresAt: expires ? new Date(expires).toISOString() : undefined,
                 allowDownload,
               });
-              await copy(l.url);
               setPassword('');
               setExpires('');
-              qc.invalidateQueries({ queryKey: ['links', node!.id] });
+              await qc.invalidateQueries({ queryKey: ['links', node!.id] });
+              void copy(l.url);
             } catch (x) {
               err(x);
             }

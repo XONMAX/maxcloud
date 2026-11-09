@@ -1,0 +1,24 @@
+# Background jobs: thumbnails, virus scan, quota lifecycle, trash purge, reconcile.
+app = "maxcloud-worker"
+primary_region = "fra"
+
+[build]
+  dockerfile = "../../apps/api/Dockerfile"
+
+[processes]
+  worker = "node dist/worker.js"
+
+[env]
+  NODE_ENV = "production"
+  STORAGE_PROVIDER = "b2"
+  S3_ENDPOINT = "https://s3.eu-central-003.backblazeb2.com"
+  S3_REGION = "eu-central-003"
+  S3_BUCKET = "maxcloud-prod"
+  S3_SSE = "AES256"
+  WEB_ORIGIN = "https://maxcloud.uz"
+  CLAMAV_HOST = "maxcloud-clamav.internal"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "1gb"
+  processes = ["worker"]

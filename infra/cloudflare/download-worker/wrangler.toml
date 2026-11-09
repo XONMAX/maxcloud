@@ -1,0 +1,10 @@
+name = "maxcloud-download"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+routes = [{ pattern = "dl.maxcloud.uz/*", zone_name = "maxcloud.uz" }]
+
+[vars]
+B2_ENDPOINT = "https://s3.eu-central-003.backblazeb2.com"
+B2_BUCKET = "maxcloud-prod"
+B2_REGION = "eu-central-003"
+# Secrets (wrangler secret put ...): DOWNLOAD_SIGNING_SECRET, B2_KEY_ID, B2_APP_KEY
