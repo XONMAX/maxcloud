@@ -20,7 +20,8 @@ interface Overview {
   grossMarginPct: number | null;
   freeTier: { users: number; storedGB: number; costUsd: number };
   revenue30d: { currency: string; total: number }[];
-  tiers: { planId: string; name: string; subscribers: number; revenue: number; storedGB: number; avgUtilization: number; storageCogs: number; paymentFees: number; cogsRatio: number | null; alert: boolean }[];
+  notices: string[];
+  tiers: { planId: string; name: string; subscribers: number; compedUsers: number; revenue: number; storedGB: number; avgUtilization: number; storageCogs: number; paymentFees: number; cogsRatio: number | null; alert: boolean }[];
   alerts: string[];
 }
 interface AdminUser {
@@ -73,6 +74,13 @@ function OverviewTab() {
           ))}
         </div>
       )}
+      {d.notices.length > 0 && (
+        <div className="flex flex-col gap-1 rounded-lg border bg-muted/50 p-4 text-sm text-muted-foreground">
+          {d.notices.map((n) => (
+            <div key={n}>{n}</div>
+          ))}
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="MRR (USD, normalised)" value={usd(d.mrrUsd)} hint={`${d.payingUsers} paying / ${d.users} users`} />
         <Kpi label="COGS / month" value={usd(d.cogsUsd)} hint={`storage @ ${d.provider.toUpperCase()} $${d.pricePerTBMonth}/TB + fees`} />
@@ -102,13 +110,16 @@ function OverviewTab() {
               {d.tiers.map((t) => (
                 <tr key={t.planId} className="border-t" data-testid={`tier-${t.planId}`}>
                   <td className="py-2 font-medium">{t.name}</td>
-                  <td>{t.subscribers}</td>
+                  <td>
+                    {t.subscribers}
+                    {t.compedUsers > 0 && <span className="text-xs text-muted-foreground"> +{t.compedUsers} comped</span>}
+                  </td>
                   <td>{usd(t.revenue)}</td>
                   <td>{t.storedGB} GB</td>
                   <td>{(t.avgUtilization * 100).toFixed(0)}%</td>
                   <td>{usd(t.storageCogs)}</td>
                   <td>{usd(t.paymentFees)}</td>
-                  <td>{t.alert ? <Badge variant="destructive">{t.cogsRatio === null ? '∞' : `${(t.cogsRatio * 100).toFixed(0)}%`}</Badge> : t.cogsRatio === null ? '—' : `${(t.cogsRatio * 100).toFixed(0)}%`}</td>
+                  <td>{t.alert ? <Badge variant="destructive">{`${(t.cogsRatio! * 100).toFixed(0)}%`}</Badge> : t.cogsRatio === null ? '—' : `${(t.cogsRatio * 100).toFixed(0)}%`}</td>
                 </tr>
               ))}
             </tbody>

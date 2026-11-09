@@ -99,7 +99,7 @@ function Billing() {
             {sub?.cancelAtPeriodEnd && <Badge variant="warning">Ends {new Date(sub.currentPeriodEnd).toLocaleDateString()}</Badge>}
           </CardTitle>
           <CardDescription>
-            {!sub && 'Free forever, 5 GB.'}
+            {!sub && (status.data?.planId === 'free' ? 'Free forever, 5 GB.' : 'Complimentary plan — no payment needed.')}
             {sub &&
               (sub.recurring
                 ? `Renews automatically on ${new Date(sub.currentPeriodEnd).toLocaleDateString()} (${sub.interval === 'month' ? 'monthly' : 'yearly'}, card).`

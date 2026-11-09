@@ -6,6 +6,7 @@ import { ZodPipe } from '../common/zod.pipe';
 import { FilesService } from './files.service';
 
 const InlineSchema = z.object({ inline: z.enum(['0', '1']).default('0') });
+const TreeSchema = z.object({ cursor: z.string().optional(), limit: z.coerce.number().int().min(1).max(10000).default(5000) });
 
 @Controller()
 export class FilesController {
@@ -19,6 +20,12 @@ export class FilesController {
   @Get('files/search')
   search(@Auth() a: AuthContext, @Query(new ZodPipe(SearchQuerySchema)) q: z.infer<typeof SearchQuerySchema>) {
     return this.files.search(a.userId, q.q, q.kind, q.limit);
+  }
+
+  /** Whole tree for sync clients. Declared before files/:id so the literal path wins. */
+  @Get('files/tree')
+  tree(@Auth() a: AuthContext, @Query(new ZodPipe(TreeSchema)) q: z.infer<typeof TreeSchema>) {
+    return this.files.tree(a.userId, q.cursor, q.limit);
   }
 
   @Get('files/shared-with-me')

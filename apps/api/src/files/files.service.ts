@@ -87,6 +87,23 @@ export class FilesService {
     return { items: nodes.sort((a, b) => order.get(a.id)! - order.get(b.id)!).map(toNodeDto) };
   }
 
+  /**
+   * Flat listing of every live item the user owns, for sync clients (desktop/mobile).
+   * Keyset-paginated by id; clients rebuild paths from parentId.
+   */
+  async tree(userId: string, cursor: string | undefined, limit: number) {
+    const rows = await this.prisma.node.findMany({
+      where: { ownerId: userId, deletedAt: null, ...(cursor ? { id: { gt: cursor } } : {}) },
+      orderBy: { id: 'asc' },
+      take: limit,
+      select: { id: true, parentId: true, type: true, name: true, size: true, sha256: true, currentVersionId: true, updatedAt: true },
+    });
+    return {
+      items: rows.map((r) => ({ ...r, size: Number(r.size), updatedAt: r.updatedAt.toISOString() })),
+      nextCursor: rows.length === limit ? rows[rows.length - 1].id : null,
+    };
+  }
+
   async sharedWithMe(userId: string) {
     const shares = await this.prisma.folderShare.findMany({
       where: { granteeId: userId, node: { deletedAt: null } },

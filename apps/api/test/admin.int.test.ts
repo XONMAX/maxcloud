@@ -34,6 +34,8 @@ describe('admin', () => {
     await ctx.prisma.subscription.create({
       data: { userId: heavy.user.id, provider: 'PAYME', planId: 's1000', interval: 'month', status: 'ACTIVE', currentPeriodStart: new Date(), currentPeriodEnd: new Date(Date.now() + 30 * 86400_000) },
     });
+    // Tier totals are global: retire 1 TB subscriptions left by earlier runs so this tier is just our heavy user.
+    await ctx.prisma.subscription.updateMany({ where: { planId: 's1000', userId: { not: heavy.user.id } }, data: { status: 'EXPIRED' } });
     const o = await a.auth(ctx.http().get('/admin/overview')).expect(200);
     const tb = o.body.tiers.find((t: { planId: string }) => t.planId === 's1000');
     expect(tb.alert).toBe(true);

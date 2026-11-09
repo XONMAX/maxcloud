@@ -114,6 +114,11 @@ pub fn plan(
         }
         let l = local.get(p);
         let r = remote.get(p);
+        // Remote file whose content hash the server hasn't computed yet (just uploaded from the web):
+        // can't compare safely, retry next round.
+        if matches!(r, Some(e) if !e.is_dir && e.hash.is_none()) {
+            continue;
+        }
         let b = base.get(p);
         let l_hash = l.map(|e| e.hash.clone());
         let r_hash = r.and_then(|e| e.hash.clone());
@@ -272,6 +277,12 @@ mod tests {
     fn file_vs_folder_name_clash() {
         let p = plan(&m(&[("x", f("1"))]), &m(&[("x", rd())]), &BTreeMap::new(), &cfg());
         assert!(matches!(&p[0], Action::Conflict { rename_local_to, .. } if rename_local_to == "x (conflicted copy from Laptop 2026-11-09)"));
+    }
+
+    #[test]
+    fn remote_files_without_hash_wait_for_server_hashing() {
+        let remote = m(&[("new.jpg", RemoteEntry { id: "x".into(), hash: None, size: 9, is_dir: false })]);
+        assert!(plan(&m(&[("new.jpg", f("L"))]), &remote, &BTreeMap::new(), &cfg()).is_empty());
     }
 
     #[test]

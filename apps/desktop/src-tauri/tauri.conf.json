@@ -1,0 +1,18 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MaxCloud",
+  "version": "0.1.0",
+  "identifier": "uz.maxcloud.desktop",
+  "build": { "frontendDist": "../ui" },
+  "app": {
+    "windows": [{ "label": "main", "title": "MaxCloud", "width": 420, "height": 560, "resizable": false, "visible": true }],
+    "security": { "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost" }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis", "dmg", "app", "deb", "appimage"],
+    "icon": ["../../web/public/icon-192.png", "../../web/public/icon-512.png"],
+    "category": "Utility",
+    "macOS": { "minimumSystemVersion": "11.0" }
+  }
+}

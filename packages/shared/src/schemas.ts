@@ -88,8 +88,10 @@ export const UploadInitSchema = z.object({
   parentId: id.nullable().default(null),
   size: z.number().int().min(0).max(5 * 1024 ** 4),
   mimeType: z.string().max(200).default('application/octet-stream'),
-  /** Optional hex sha256 of the whole file for dedupe (mobile auto-backup). */
+  /** Optional hex sha256 of the whole file (stored; lets sync clients skip re-hashing). */
   sha256: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  /** Camera-roll backup: if identical content already exists anywhere in the account, skip the upload. Folder sync must leave this off. */
+  dedupe: z.boolean().default(false),
 });
 export const UploadPartsSchema = z.object({ partNumbers: z.array(z.number().int().min(1).max(10000)).min(1).max(100) });
 export const UploadCompleteSchema = z.object({

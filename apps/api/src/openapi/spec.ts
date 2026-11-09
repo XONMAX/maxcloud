@@ -62,6 +62,17 @@ export const ROUTES: Route[] = [
   // files
   { method: 'get', path: '/files', summary: 'List a folder (keyset pagination, folders first)', tag: 'Files', query: S.ListQuerySchema, response: Page },
   { method: 'get', path: '/files/search', summary: 'Search by name and type', tag: 'Files', query: S.SearchQuerySchema, response: z.object({ items: z.array(Node) }) },
+  {
+    method: 'get',
+    path: '/files/tree',
+    summary: 'Flat list of all my live items (sync clients)',
+    tag: 'Files',
+    query: z.object({ cursor: z.string().optional(), limit: z.number().optional() }),
+    response: z.object({
+      items: z.array(z.object({ id: z.string(), parentId: z.string().nullable(), type: z.enum(['FILE', 'FOLDER']), name: z.string(), size: z.number(), sha256: z.string().nullable(), currentVersionId: z.string().nullable(), updatedAt: z.string() })),
+      nextCursor: z.string().nullable(),
+    }),
+  },
   { method: 'get', path: '/files/shared-with-me', summary: 'Folders shared with me', tag: 'Sharing' },
   { method: 'get', path: '/files/{id}', summary: 'Get one item', tag: 'Files', response: z.object({ node: Node, role: z.string() }) },
   { method: 'post', path: '/folders', summary: 'Create folder', tag: 'Files', body: S.CreateFolderSchema, response: Node, status: 201 },

@@ -2,15 +2,21 @@
   "name": "maxcloud",
   "private": true,
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "pnpm --filter @maxcloud/shared build && pnpm -r --parallel --filter @maxcloud/api --filter @maxcloud/web dev",
+    "dev": "pnpm --filter @maxcloud/shared build && concurrently -n api,worker,web -c blue,magenta,green \"pnpm --filter @maxcloud/api dev\" \"pnpm --filter @maxcloud/api dev:worker\" \"pnpm --filter @maxcloud/web dev\"",
     "dev:setup": "bash scripts/dev-setup.sh",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "test": "pnpm --filter @maxcloud/shared build && pnpm -r test && (cd apps/desktop && cargo test -q)",
     "typecheck": "pnpm -r typecheck",
     "e2e": "pnpm --filter @maxcloud/web e2e",
     "db:seed": "pnpm --filter @maxcloud/api db:seed",
-    "openapi": "pnpm --filter @maxcloud/api openapi"
+    "openapi": "pnpm --filter @maxcloud/api openapi",
+    "economics": "pnpm --filter @maxcloud/shared build && node packages/shared/dist/economics-cli.js"
+  },
+  "devDependencies": {
+    "concurrently": "9.2.1"
   }
 }

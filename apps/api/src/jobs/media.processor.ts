@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -42,6 +43,12 @@ export class MediaProcessor {
   async process(versionId: string) {
     const v = await this.prisma.fileVersion.findUnique({ where: { id: versionId }, include: { node: true } });
     if (!v) return { skipped: 'version deleted' };
+    // Server-side content hash (browser uploads don't send one) so sync clients can compare files.
+    if (!v.sha256) {
+      const sha256 = await this.hash(v.storageKey);
+      await this.prisma.fileVersion.update({ where: { id: v.id }, data: { sha256 } });
+      await this.prisma.node.updateMany({ where: { id: v.nodeId, currentVersionId: v.id }, data: { sha256 } });
+    }
     const scan = await this.scan(v.storageKey);
     await this.prisma.fileVersion.update({ where: { id: v.id }, data: { scanStatus: scan } });
     if (scan === 'INFECTED') {
@@ -57,6 +64,12 @@ export class MediaProcessor {
       await this.prisma.node.updateMany({ where: { id: v.nodeId, currentVersionId: v.id }, data: { hasThumbnail: true } });
     }
     return { scan, thumbnail: !!thumb };
+  }
+
+  private async hash(key: string): Promise<string> {
+    const h = createHash('sha256');
+    for await (const chunk of await this.storage.getStream(key)) h.update(chunk as Buffer);
+    return h.digest('hex');
   }
 
   private async scan(key: string): Promise<'CLEAN' | 'INFECTED' | 'SKIPPED'> {

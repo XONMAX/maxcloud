@@ -47,7 +47,7 @@ export class AdminService {
       const used = Number(row?.used ?? 0);
       const storage = (used / (1024 * GB)) * perTB;
       const cogs = storage + fees;
-      const ratio = revenue > 0 ? cogs / revenue : storage > 0 ? Infinity : 0;
+      const ratio = revenue > 0 ? cogs / revenue : null;
       return {
         planId: p.id,
         name: p.name,
@@ -58,15 +58,19 @@ export class AdminService {
         avgUtilization: tierSubs.length ? round(used / (tierSubs.length * p.quotaBytes), 3) : 0,
         storageCogs: round(storage),
         paymentFees: round(fees),
-        cogsRatio: Number.isFinite(ratio) ? round(ratio, 3) : null,
-        alert: ratio > alertRatio,
+        cogsRatio: ratio === null ? null : round(ratio, 3),
+        alert: ratio !== null && ratio > alertRatio,
+        /** Users on this plan without a paying subscription (admin overrides, comped, seeded). */
+        compedUsers: Math.max(0, Number(row?.users ?? 0) - tierSubs.length),
       };
     });
     const free = storedByPlan.find((r) => r.planId === 'free');
     const freeCost = (Number(free?.used ?? 0) / (1024 * GB)) * perTB;
     const revenue = tiers.reduce((a, t) => a + t.revenue, 0);
     const cogs = tiers.reduce((a, t) => a + t.storageCogs + t.paymentFees, 0) + freeCost;
-    const alerts = tiers.filter((t) => t.alert).map((t) => `${t.name}: COGS ${t.cogsRatio === null ? '∞' : (t.cogsRatio * 100).toFixed(1)}% of revenue > ${alertRatio * 100}%`);
+    const alerts = tiers.filter((t) => t.alert).map((t) => `${t.name}: COGS ${(t.cogsRatio! * 100).toFixed(1)}% of revenue > ${alertRatio * 100}%`);
+    const comped = tiers.filter((t) => t.compedUsers > 0 && t.subscribers === 0 && t.storageCogs > 0);
+    const notices = comped.map((t) => `${t.name}: ${t.compedUsers} user(s) without a paying subscription cost ${t.storageCogs.toFixed(2)} USD/month`);
     if (revenue > 0 && cogs / revenue > alertRatio) alerts.push(`Blended COGS ${((cogs / revenue) * 100).toFixed(1)}% > ${alertRatio * 100}%`);
 
     return {
@@ -82,6 +86,7 @@ export class AdminService {
       revenue30d: invoices30.map((r) => ({ currency: r.currency, total: Number(r.total) })),
       tiers,
       alerts,
+      notices,
     };
   }
 

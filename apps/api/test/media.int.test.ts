@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -65,6 +66,9 @@ describe('media processing', () => {
     expect(meta).toMatchObject({ format: 'webp', width: 320, height: 320 });
     const list = await u.auth(ctx.http().get('/files')).expect(200);
     expect(list.body.items[0].hasThumbnail).toBe(true);
+    // server computed the content hash for sync clients
+    const tree = await u.auth(ctx.http().get('/files/tree')).expect(200);
+    expect(tree.body.items[0].sha256).toBe(createHash('sha256').update(png).digest('hex'));
   });
 
   it('video (ffmpeg) and PDF (pdftoppm) thumbnails', async () => {

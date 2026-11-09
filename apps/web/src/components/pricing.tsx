@@ -36,7 +36,7 @@ export function PricingTable({
           </TabsList>
         </Tabs>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         {PLANS.map((p) => {
           const price = interval === 'month' ? p.monthly[currency] : p.yearly[currency];
           const current = p.id === currentPlanId;
@@ -49,16 +49,16 @@ export function PricingTable({
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-4">
                 <div>
-                  <span className="text-2xl font-semibold">{p.id === 'free' ? '0' : formatMoney(price, currency)}</span>
-                  {p.id !== 'free' && <span className="text-sm text-muted-foreground">{interval === 'month' ? t('pricing.perMonth') : t('pricing.perYear')}</span>}
+                  <span className="text-2xl font-semibold whitespace-nowrap tabular-nums">{p.id === 'free' ? '0' : formatMoney(price, currency)}</span>
+                  {p.id !== 'free' && <span className="text-sm whitespace-nowrap text-muted-foreground">{interval === 'month' ? t('pricing.perMonth') : t('pricing.perYear')}</span>}
                   {p.id !== 'free' && interval === 'year' && (
                     <div className="text-xs text-muted-foreground">≈ {formatMoney(Math.round(p.yearly[currency] / 12), currency)}/mo</div>
                   )}
                 </div>
                 <ul className="flex flex-col gap-1.5 text-sm text-muted-foreground">
                   {['Phone & PC apps', 'Photo auto-backup', 'Share links with password', p.id === 'free' ? '30-day trash' : '10 file versions'].map((f) => (
-                    <li key={f} className="flex items-center gap-2">
-                      <Check className="size-4 text-success" /> {f}
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="mt-0.5 size-4 shrink-0 text-success" /> {f}
                     </li>
                   ))}
                 </ul>

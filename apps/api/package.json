@@ -3,17 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node --watch -r @swc-node/register src/main.ts",
+    "dev": "node --env-file-if-exists=.env --watch -r @swc-node/register src/main.ts",
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "worker": "node dist/worker.js",
-    "dev:worker": "node --watch -r @swc-node/register src/worker.ts",
+    "dev:worker": "node --env-file-if-exists=.env --watch -r @swc-node/register src/worker.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "tsx --env-file=.env prisma/seed.ts",
     "openapi": "node -r @swc-node/register src/openapi/generate.ts"
   },
   "dependencies": {

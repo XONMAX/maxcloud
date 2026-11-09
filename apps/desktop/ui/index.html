@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MaxCloud</title>
+<style>
+  :root { --bg:#fff; --fg:#1b2333; --muted:#667085; --primary:#1d6fe0; --border:#e4e7ec; font-family: system-ui, sans-serif; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141922; --fg:#eef1f6; --muted:#98a2b3; --border:#2a3140; } }
+  body { margin:0; background:var(--bg); color:var(--fg); padding:20px; }
+  h1 { font-size:18px; margin:0 0 12px; } label { display:block; font-size:12px; color:var(--muted); margin-top:10px; }
+  input { width:100%; box-sizing:border-box; padding:8px; border:1px solid var(--border); border-radius:6px; background:transparent; color:inherit; }
+  button { margin-top:14px; padding:9px 14px; border:0; border-radius:6px; background:var(--primary); color:#fff; cursor:pointer; }
+  .status { margin-top:16px; padding:10px; border:1px solid var(--border); border-radius:8px; font-size:13px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+  <h1>MaxCloud</h1>
+  <form id="login">
+    <label>Server<input name="server" value="https://api.maxcloud.uz" /></label>
+    <label>Email<input name="email" type="email" required /></label>
+    <label>Password<input name="password" type="password" required /></label>
+    <label>2FA code (if enabled)<input name="totp" /></label>
+    <label>Sync folder<input name="root" required placeholder="C:\Users\you\MaxCloud" /></label>
+    <button type="submit">Sign in &amp; start syncing</button>
+    <p id="err" style="color:#d92d20;font-size:13px"></p>
+  </form>
+  <form id="settings" class="hidden">
+    <label>Don't sync these folders (comma separated)<input name="excluded" placeholder="Videos, Archive" /></label>
+    <label>Upload limit, KB/s (0 = unlimited)<input name="up" type="number" min="0" value="0" /></label>
+    <label>Download limit, KB/s (0 = unlimited)<input name="down" type="number" min="0" value="0" /></label>
+    <label><input name="paused" type="checkbox" style="width:auto" /> Pause syncing</label>
+    <button type="submit">Save</button>
+    <div class="status" id="status">Starting…</div>
+  </form>
+<script>
+  const { invoke } = window.__TAURI__.core;
+  const $ = (id) => document.getElementById(id);
+  async function refresh() {
+    const [s, last] = await invoke('status');
+    if (s.root) {
+      $('login').classList.add('hidden'); $('settings').classList.remove('hidden');
+      const f = $('settings'); f.excluded.value = s.excluded.join(', '); f.up.value = s.upload_kbps; f.down.value = s.download_kbps; f.paused.checked = s.paused;
+      $('status').textContent = (s.paused ? 'Paused · ' : '') + (last || 'Waiting for first sync…') + ' · ' + s.root;
+    }
+  }
+  $('login').onsubmit = async (e) => {
+    e.preventDefault(); const f = e.target;
+    try { await invoke('login', { server: f.server.value, email: f.email.value, password: f.password.value, totp: f.totp.value || null, root: f.root.value }); refresh(); }
+    catch (x) { $('err').textContent = x; }
+  };
+  $('settings').onsubmit = async (e) => {
+    e.preventDefault(); const f = e.target;
+    await invoke('update_settings', { excluded: f.excluded.value.split(',').map((s) => s.trim()).filter(Boolean), uploadKbps: +f.up.value, downloadKbps: +f.down.value, paused: f.paused.checked });
+    refresh();
+  };
+  refresh(); setInterval(refresh, 5000);
+</script>
+</body>
+</html>

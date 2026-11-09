@@ -23,7 +23,8 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec\.ts/ },
   ],
   webServer: [
-    { command: 'RATE_LIMIT_DISABLED=true pnpm --filter @maxcloud/api dev', // many signups from one IP url: 'http://localhost:4000/health', reuseExistingServer: true, timeout: 120_000, cwd: '../..' },
+    // RATE_LIMIT_DISABLED: the suite signs up many accounts from 127.0.0.1
+    { command: 'RATE_LIMIT_DISABLED=true pnpm --filter @maxcloud/api dev', url: 'http://localhost:4000/health', reuseExistingServer: true, timeout: 120_000, cwd: '../..' },
     { command: 'pnpm --filter @maxcloud/web dev', url: 'http://localhost:3000/login', reuseExistingServer: true, timeout: 120_000, cwd: '../..' },
   ],
 });

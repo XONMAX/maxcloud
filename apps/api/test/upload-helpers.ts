@@ -14,7 +14,7 @@ export async function putPart(url: string, body: Buffer): Promise<string> {
 export async function uploadFile(ctx: TestCtx, u: U, name: string, data: Buffer, parentId: string | null = null, opts: { mimeType?: string; sha256?: boolean } = {}) {
   const init = await u
     .auth(ctx.http().post('/uploads'))
-    .send({ name, parentId, size: data.length, mimeType: opts.mimeType ?? 'application/octet-stream', sha256: opts.sha256 ? createHash('sha256').update(data).digest('hex') : undefined });
+    .send({ name, parentId, size: data.length, mimeType: opts.mimeType ?? 'application/octet-stream', sha256: opts.sha256 ? createHash('sha256').update(data).digest('hex') : undefined, dedupe: !!opts.sha256 });
   if (init.status !== 201) return { status: init.status, body: init.body };
   if (init.body.deduplicatedNode) return { status: 200, body: init.body.deduplicatedNode, deduplicated: true };
   const { uploadId, partSize, partCount } = init.body;

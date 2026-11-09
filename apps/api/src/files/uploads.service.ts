@@ -56,7 +56,7 @@ export class UploadsService {
     return { uploadId: u.id, partSize: u.partSize, partCount: this.partCount(u), expiresAt: u.expiresAt.toISOString(), completedParts, deduplicatedNode: null };
   }
 
-  async init(userId: string, input: { name: string; parentId: string | null; size: number; mimeType: string; sha256?: string }): Promise<UploadSessionDto> {
+  async init(userId: string, input: { name: string; parentId: string | null; size: number; mimeType: string; sha256?: string; dedupe?: boolean }): Promise<UploadSessionDto> {
     const ownerId = await this.ownerFor(userId, input.parentId);
     const existing = await this.prisma.node.findFirst({
       where: { ownerId, parentId: input.parentId, deletedAt: null, name: { equals: input.name, mode: 'insensitive' } },
@@ -64,7 +64,7 @@ export class UploadsService {
     if (existing?.type === 'FOLDER') throw Errors.conflict('A folder with this name already exists here');
 
     // Dedupe (mobile auto-backup): identical content already stored for this owner -> no upload needed.
-    if (input.sha256) {
+    if (input.sha256 && input.dedupe) {
       const dup = await this.prisma.node.findFirst({ where: { ownerId, deletedAt: null, type: 'FILE', sha256: input.sha256, size: BigInt(input.size) } });
       if (dup) {
         return { uploadId: '', partSize: 0, partCount: 0, expiresAt: new Date().toISOString(), completedParts: [], deduplicatedNode: toNodeDto(dup) };
