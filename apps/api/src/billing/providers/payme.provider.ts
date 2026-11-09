@@ -1,11 +1,12 @@
-import { HttpStatus, Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { priceFor } from '@maxcloud/shared';
 import type { PaymentOrder, PaymeTransaction } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { AppError } from '../../common/errors';
 import { safeEqual } from '../../common/crypto';
 import { config } from '../../config';
-import { BillingService } from '../billing.service';
+import { PREPAID_LEDGER, type PrepaidLedger } from './payment-provider';
 import type { CheckoutRequest, CheckoutResult, PaymentProvider } from './payment-provider';
 
 /** Payme Merchant API error codes (https://developer.help.paycom.uz). */
@@ -61,7 +62,12 @@ export class PaymeProvider implements PaymentProvider {
   readonly currency = 'UZS' as const;
   readonly recurring = false;
 
-  constructor(private prisma: PrismaService, @Inject(forwardRef(() => BillingService)) private billing: BillingService) {}
+  constructor(private prisma: PrismaService, private moduleRef: ModuleRef) {}
+
+  /** Resolved lazily: BillingService depends on this provider, so constructor injection would be circular. */
+  private get billing(): PrepaidLedger {
+    return this.moduleRef.get<PrepaidLedger>(PREPAID_LEDGER, { strict: false });
+  }
 
   available() {
     return !!config().PAYME_MERCHANT_ID && !!config().PAYME_KEY;

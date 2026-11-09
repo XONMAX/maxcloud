@@ -1,5 +1,5 @@
 import type { BillingInterval, PlanId } from '@maxcloud/shared';
-import type { PaymentProviderId, User } from '@prisma/client';
+import type { PaymentProviderId, Prisma, User } from '@prisma/client';
 
 export interface CheckoutRequest {
   user: User;
@@ -29,4 +29,15 @@ export interface PaymentProvider {
   /** Configured with credentials? */
   available(): boolean;
   createCheckout(req: CheckoutRequest): Promise<CheckoutResult>;
+}
+
+/**
+ * What prepaid gateways need from billing. Injected by token (implemented by
+ * BillingService) so providers don't import BillingService (circular import).
+ */
+export const PREPAID_LEDGER = Symbol('PREPAID_LEDGER');
+export interface PrepaidLedger {
+  applyPrepaidOrder(orderId: string, db: Prisma.TransactionClient): Promise<void>;
+  refundPrepaidOrder(orderId: string, db: Prisma.TransactionClient): Promise<void>;
+  afterPrepaidApplied(orderId: string): Promise<void>;
 }

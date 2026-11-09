@@ -12,7 +12,7 @@ import { ClickProvider } from './providers/click.provider';
 import { PaymeProvider } from './providers/payme.provider';
 import { StripeProvider } from './providers/stripe.provider';
 import { UzumProvider } from './providers/uzum.provider';
-import type { PaymentProvider } from './providers/payment-provider';
+import type { PaymentProvider, PrepaidLedger } from './providers/payment-provider';
 
 type Tx = Prisma.TransactionClient;
 const DAY = 86400_000;
@@ -46,7 +46,7 @@ function invoiceSubscriptionId(inv: Stripe.Invoice): string | null {
 }
 
 @Injectable()
-export class BillingService {
+export class BillingService implements PrepaidLedger {
   private log = new Logger(BillingService.name);
   private providers: Record<string, PaymentProvider>;
 

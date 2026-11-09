@@ -1,17 +1,15 @@
 import './instrument';
 import 'reflect-metadata';
-import { Logger, Module } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { Worker } from 'bullmq';
 import * as Sentry from '@sentry/nestjs';
-import { AppModule } from './app.module';
 import { RedisService } from './common/redis.service';
 import { MediaProcessor } from './jobs/media.processor';
 import { MaintenanceProcessor } from './jobs/maintenance.processor';
+import { WorkerModule } from './jobs/worker.module';
 import { MAINTENANCE_QUEUE, MEDIA_QUEUE, QueueService, type MaintenanceJob, type MediaJob } from './jobs/queue.service';
 
-@Module({ imports: [AppModule], providers: [MediaProcessor, MaintenanceProcessor] })
-class WorkerModule {}
 
 /** Cron schedule for housekeeping (UTC). */
 const SCHEDULES: { kind: MaintenanceJob['kind']; pattern: string }[] = [

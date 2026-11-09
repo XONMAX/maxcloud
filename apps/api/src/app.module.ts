@@ -26,16 +26,38 @@ import { SharesService } from './sharing/shares.service';
 import { QuotaService } from './quota/quota.service';
 import { BillingController } from './billing/billing.controller';
 import { BillingService } from './billing/billing.service';
+import { PREPAID_LEDGER } from './billing/providers/payment-provider';
 import { StripeProvider } from './billing/providers/stripe.provider';
 import { PaymeProvider } from './billing/providers/payme.provider';
 import { ClickProvider } from './billing/providers/click.provider';
 import { UzumProvider } from './billing/providers/uzum.provider';
 import { InvoicesService } from './billing/invoices.service';
 import { PaymeController } from './billing/payme.controller';
-// SLICE: import { AdminController } from './admin/admin.controller';
-// SLICE: import { AdminService } from './admin/admin.service';
+import { AdminController } from './admin/admin.controller';
+import { AdminService } from './admin/admin.service';
 import { AccountController } from './account/account.controller';
 import { AccountService } from './account/account.service';
+
+/** Business services shared by the HTTP app and the worker. */
+const DOMAIN_PROVIDERS = [
+AuthService,
+    OAuthService,
+    TokensService,
+    AccessService,
+    FilesService,
+    UploadsService,
+    SharesService,
+    QuotaService,
+    BillingService,
+    { provide: PREPAID_LEDGER, useExisting: BillingService },
+    StripeProvider,
+    PaymeProvider,
+    ClickProvider,
+    UzumProvider,
+    InvoicesService,
+    AdminService,
+    AccountService,
+];
 
 @Global()
 @Module({
@@ -70,29 +92,16 @@ export class CoreModule {}
     PublicSharesController,
     BillingController,
     PaymeController,
-    // SLICE: AdminController,
+    AdminController,
     AccountController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
-    AuthService,
-    OAuthService,
-    TokensService,
-    AccessService,
-    FilesService,
-    UploadsService,
-    SharesService,
-    QuotaService,
-    BillingService,
-    StripeProvider,
-    PaymeProvider,
-    ClickProvider,
-    UzumProvider,
-    InvoicesService,
-    // SLICE: AdminService,
-    AccountService,
+    ...DOMAIN_PROVIDERS,
   ],
+  // The worker process (src/worker.ts) imports AppModule and needs the same services.
+  exports: DOMAIN_PROVIDERS,
 })
 export class AppModule {}
