@@ -20,9 +20,9 @@ import { FilesController } from './files/files.controller';
 import { FilesService } from './files/files.service';
 import { UploadsService } from './files/uploads.service';
 import { UploadsController } from './files/uploads.controller';
-// SLICE: import { SharesController } from './sharing/shares.controller';
-// SLICE: import { PublicSharesController } from './sharing/public-shares.controller';
-// SLICE: import { SharesService } from './sharing/shares.service';
+import { SharesController } from './sharing/shares.controller';
+import { PublicSharesController } from './sharing/public-shares.controller';
+import { SharesService } from './sharing/shares.service';
 import { QuotaService } from './quota/quota.service';
 // SLICE: import { BillingController } from './billing/billing.controller';
 // SLICE: import { BillingService } from './billing/billing.service';
@@ -51,6 +51,11 @@ export class CoreModule {}
       pinoHttp: {
         level: config().LOG_LEVEL,
         redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
+        // Keep request logs short and PII-light: method, url, status, timing, ip.
+        serializers: {
+          req: (req: { id: unknown; method: string; url: string; remoteAddress?: string }) => ({ id: req.id, method: req.method, url: req.url.split('?')[0], ip: req.remoteAddress }),
+          res: (res: { statusCode: number }) => ({ status: res.statusCode }),
+        },
         transport: config().NODE_ENV === 'development' ? { target: 'pino-pretty', options: { singleLine: true } } : undefined,
         autoLogging: { ignore: (req) => req.url === '/health' || req.url === '/metrics' },
       },
@@ -61,8 +66,8 @@ export class CoreModule {}
     AuthController,
     FilesController,
     UploadsController,
-    // SLICE: SharesController,
-    // SLICE: PublicSharesController,
+    SharesController,
+    PublicSharesController,
     // SLICE: BillingController,
     // SLICE: PaymeController,
     // SLICE: AdminController,
@@ -78,7 +83,7 @@ export class CoreModule {}
     AccessService,
     FilesService,
     UploadsService,
-    // SLICE: SharesService,
+    SharesService,
     QuotaService,
     // SLICE: BillingService,
     // SLICE: StripeProvider,
