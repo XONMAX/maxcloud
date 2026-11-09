@@ -8,7 +8,11 @@ const config: NextConfig = {
   poweredByHeader: false,
   // Same-origin API: /api/* is proxied to the Nest API so auth cookies are first-party.
   // Only small JSON goes through here; file bytes go browser <-> S3 directly.
+  // On Vercel the project's top-level rewrite (vercel.json) sends /api/* to the `api` service
+  // before Next.js sees it, so no proxy is needed (and next.config rewrites are build-time,
+  // where service bindings aren't available anyway).
   async rewrites() {
+    if (process.env.VERCEL) return [];
     return [{ source: '/api/:path*', destination: `${API_URL}/:path*` }];
   },
   async headers() {

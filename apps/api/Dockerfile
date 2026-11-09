@@ -20,9 +20,10 @@ FROM node:22-bookworm-slim AS runtime
 # ffmpeg + poppler for video/PDF thumbnails in the worker
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg poppler-utils ca-certificates openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-ENV NODE_ENV=production
+# Vercel's container runtime expects port 80 unless PORT is set; Fly/compose set PORT=4000 explicitly.
+ENV NODE_ENV=production PORT=80
 COPY --from=build /out /app
 USER node
-EXPOSE 4000
+EXPOSE 80
 # Migrations run as a release command (fly.toml) - not on every container start.
 CMD ["node", "dist/main.js"]

@@ -8,6 +8,15 @@ const bool = z
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(4000),
+  /**
+   * Path prefix the API is mounted under. On Vercel the top-level rewrite `/api/(.*)` forwards the
+   * ORIGINAL path to the api service, so routes must live under /api there. Locally and on Fly the
+   * web app's proxy (or api.maxcloud.uz) strips it, so the default is no prefix.
+   */
+  API_BASE_PATH: z
+    .string()
+    .regex(/^(\/[\w-]+)*$/, 'like /api, or empty')
+    .default(process.env.VERCEL ? '/api' : ''),
   APP_NAME: z.string().default('MaxCloud'),
   /** Public URL of the web app (used in emails, redirects, CSRF origin check). */
   WEB_ORIGIN: z.string().url().default('http://localhost:3000'),

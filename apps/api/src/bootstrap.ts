@@ -6,7 +6,7 @@ import helmet from 'helmet';
 import { json, type NextFunction, type Request, type Response } from 'express';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
-import { allowedOrigins } from './config';
+import { allowedOrigins, config } from './config';
 import { metricsMiddleware } from './common/metrics';
 
 /** Builds the HTTP app. Shared by main.ts, integration tests and the OpenAPI generator. */
@@ -28,5 +28,7 @@ export async function createApp(opts: { logger?: boolean } = {}) {
   app.use(metricsMiddleware);
   app.enableCors({ origin: allowedOrigins(), credentials: true });
   app.enableShutdownHooks();
+  const prefix = config().API_BASE_PATH.replace(/^\//, '');
+  if (prefix) app.setGlobalPrefix(prefix);
   return app;
 }
