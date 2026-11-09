@@ -14,16 +14,16 @@ import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { OAuthService } from './auth/oauth.service';
 import { TokensService } from './auth/tokens.service';
-// SLICE: import { QueueService } from './jobs/queue.service';
-// SLICE: import { AccessService } from './files/access.service';
-// SLICE: import { FilesController } from './files/files.controller';
-// SLICE: import { FilesService } from './files/files.service';
-// SLICE: import { UploadsService } from './files/uploads.service';
-// SLICE: import { UploadsController } from './files/uploads.controller';
+import { QueueService } from './jobs/queue.service';
+import { AccessService } from './files/access.service';
+import { FilesController } from './files/files.controller';
+import { FilesService } from './files/files.service';
+import { UploadsService } from './files/uploads.service';
+import { UploadsController } from './files/uploads.controller';
 // SLICE: import { SharesController } from './sharing/shares.controller';
 // SLICE: import { PublicSharesController } from './sharing/public-shares.controller';
 // SLICE: import { SharesService } from './sharing/shares.service';
-// SLICE: import { QuotaService } from './quota/quota.service';
+import { QuotaService } from './quota/quota.service';
 // SLICE: import { BillingController } from './billing/billing.controller';
 // SLICE: import { BillingService } from './billing/billing.service';
 // SLICE: import { StripeProvider } from './billing/providers/stripe.provider';
@@ -39,8 +39,8 @@ import { TokensService } from './auth/tokens.service';
 
 @Global()
 @Module({
-  providers: [PrismaService, RedisService, MailService, StorageService, ] /* SLICE: QueueService */,
-  exports: [PrismaService, RedisService, MailService, StorageService, ] /* SLICE: QueueService */,
+  providers: [PrismaService, RedisService, MailService, StorageService, QueueService],
+  exports: [PrismaService, RedisService, MailService, StorageService, QueueService],
 })
 export class CoreModule {}
 
@@ -59,8 +59,8 @@ export class CoreModule {}
   controllers: [
     HealthController,
     AuthController,
-    // SLICE: FilesController,
-    // SLICE: UploadsController,
+    FilesController,
+    UploadsController,
     // SLICE: SharesController,
     // SLICE: PublicSharesController,
     // SLICE: BillingController,
@@ -75,11 +75,11 @@ export class CoreModule {}
     AuthService,
     OAuthService,
     TokensService,
-    // SLICE: AccessService,
-    // SLICE: FilesService,
-    // SLICE: UploadsService,
+    AccessService,
+    FilesService,
+    UploadsService,
     // SLICE: SharesService,
-    // SLICE: QuotaService,
+    QuotaService,
     // SLICE: BillingService,
     // SLICE: StripeProvider,
     // SLICE: PaymeProvider,

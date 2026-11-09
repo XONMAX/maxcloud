@@ -93,7 +93,7 @@ export const UploadInitSchema = z.object({
 });
 export const UploadPartsSchema = z.object({ partNumbers: z.array(z.number().int().min(1).max(10000)).min(1).max(100) });
 export const UploadCompleteSchema = z.object({
-  parts: z.array(z.object({ partNumber: z.number().int().min(1).max(10000), etag: z.string().min(1).max(200) })).min(1).max(10000),
+  parts: z.array(z.object({ partNumber: z.number().int().min(1).max(10000), etag: z.string().min(1).max(200) })).max(10000),
 });
 
 export const UploadSessionSchema = z.object({

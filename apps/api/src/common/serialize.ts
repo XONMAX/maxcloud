@@ -1,4 +1,4 @@
-import type { FileVersion, Node, User } from '@prisma/client';
+import type { Node, User } from '@prisma/client';
 import type { NodeDto, UserDto } from '@maxcloud/shared';
 
 const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
@@ -22,12 +22,7 @@ export function toUserDto(u: User): UserDto {
   };
 }
 
-export type NodeWithMeta = Node & {
-  currentVersion?: Pick<FileVersion, 'thumbnailKey'> | null;
-  _count?: { versions: number };
-};
-
-export function toNodeDto(n: NodeWithMeta): NodeDto {
+export function toNodeDto(n: Node): NodeDto {
   return {
     id: n.id,
     type: n.type,
@@ -36,8 +31,8 @@ export function toNodeDto(n: NodeWithMeta): NodeDto {
     size: Number(n.size),
     mimeType: n.mimeType,
     kind: n.kind,
-    hasThumbnail: !!n.currentVersion?.thumbnailKey,
-    versionCount: n._count?.versions ?? 0,
+    hasThumbnail: n.hasThumbnail,
+    versionCount: n.versionCount,
     createdAt: n.createdAt.toISOString(),
     updatedAt: n.updatedAt.toISOString(),
     deletedAt: iso(n.deletedAt),

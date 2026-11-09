@@ -14,7 +14,8 @@ export interface TestCtx {
 
 export async function createTestApp(): Promise<TestCtx> {
   const app = await createApp({ logger: false });
-  await app.init();
+  // Listen once so concurrent supertest requests share one server (otherwise each opens an ephemeral one).
+  await app.listen(0, '127.0.0.1');
   const prisma = app.get(PrismaService);
   await syncPlans(prisma);
   await app.get(RedisService).flushdb();

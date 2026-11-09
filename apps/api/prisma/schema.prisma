@@ -132,6 +132,10 @@ model Node {
   size             BigInt     @default(0)
   mimeType         String?
   kind             String?
+  /// Denormalised for fast listings (10k rows < 500 ms): maintained by FilesService/UploadsService/media worker.
+  versionCount     Int        @default(0)
+  hasThumbnail     Boolean    @default(false)
+  sha256           String?
   currentVersionId String?    @unique
   currentVersion   FileVersion? @relation("current", fields: [currentVersionId], references: [id])
   versions         FileVersion[] @relation("versions")
@@ -147,6 +151,7 @@ model Node {
   folderShares FolderShare[]
 
   @@index([ownerId, deletedAt])
+  @@index([ownerId, sha256])
   @@index([parentId])
   @@index([trashBatchId])
 }
