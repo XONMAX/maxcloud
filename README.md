@@ -29,7 +29,16 @@ pnpm dev
 ```
 
 `pnpm dev:setup` starts Postgres, Redis, S3 and Mailpit, writes `.env`, installs dependencies, runs migrations
-and seeds demo data. `pnpm dev` then starts the API (:4000), the worker and the web app (:3000) with hot reload.
+and seeds demo data. If Docker is missing, stopped, or your user can't use it, the script prints the exact
+commands to fix it for your Linux distribution.
+
+**Fedora:** install Docker from Docker's repo (`dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo`,
+then `dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`), run
+`sudo systemctl enable --now docker`, add yourself to the `docker` group and log in again. SELinux is handled:
+the compose bind mounts use `:z`.
+
+**Without Docker:** run Postgres 16, Redis and an S3 server on `:5432`, `:6379` and `:7070` yourself, then
+`MAXCLOUD_NO_DOCKER=1 pnpm dev:setup`. `pnpm dev` then starts the API (:4000), the worker and the web app (:3000) with hot reload.
 
 | | |
 |---|---|
