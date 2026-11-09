@@ -1,0 +1,443 @@
+// MaxCloud data model. ERD: docs/ARCHITECTURE.md#data-model
+// Partial / expression indexes that Prisma cannot express live in
+// prisma/migrations/*_custom_indexes/migration.sql.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum StorageState {
+  ACTIVE
+  GRACE
+  READ_ONLY
+  PENDING_DELETION
+}
+
+enum GraceReason {
+  PLAN_DOWNGRADE
+  PAYMENT_FAILED
+}
+
+model User {
+  id                 String       @id @default(cuid())
+  email              String       @unique
+  name               String
+  passwordHash       String?
+  role               Role         @default(USER)
+  locale             String       @default("uz")
+  emailVerifiedAt    DateTime?
+  googleSub          String?      @unique
+  appleSub           String?      @unique
+  /// AES-256-GCM encrypted TOTP secret
+  totpSecretEnc      String?
+  totpEnabledAt      DateTime?
+  /// sha256 hashes of unused recovery codes
+  recoveryCodes      String[]     @default([])
+
+  planId             String       @default("free")
+  plan               Plan         @relation(fields: [planId], references: [id])
+  /// Admin manual override; when set it replaces the plan quota.
+  quotaOverrideBytes BigInt?
+  /// Effective quota (plan or override). Kept denormalised for the atomic reservation UPDATE.
+  quotaBytes         BigInt       @default(5368709120)
+  usedBytes          BigInt       @default(0)
+  reservedBytes      BigInt       @default(0)
+
+  storageState        StorageState @default(ACTIVE)
+  graceReason         GraceReason?
+  /// Quota honoured during grace (the pre-downgrade quota).
+  graceQuotaBytes     BigInt?
+  graceEndsAt         DateTime?
+  readOnlyAt          DateTime?
+  deletionScheduledAt DateTime?
+
+  stripeCustomerId   String?      @unique
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  /// Set when the user requested account deletion (GDPR); purge job removes data.
+  deletionRequestedAt DateTime?
+
+  sessions      Session[]
+  nodes         Node[]          @relation("owner")
+  uploads       Upload[]        @relation("uploadOwner")
+  shareLinks    ShareLink[]
+  folderShares  FolderShare[]   @relation("grantee")
+  subscriptions Subscription[]
+  orders        PaymentOrder[]
+  invoices      Invoice[]
+  notices       QuotaNotice[]
+  emailTokens   EmailToken[]
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String    @unique
+  /// Previous refresh hash: presenting it again means the token was stolen -> revoke.
+  prevRefreshHash  String?   @unique
+  deviceName       String
+  userAgent        String?
+  ip               String?
+  createdAt        DateTime  @default(now())
+  lastUsedAt       DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+
+  @@index([userId, revokedAt])
+}
+
+enum EmailTokenKind {
+  VERIFY
+  RESET
+}
+
+model EmailToken {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      EmailTokenKind
+  tokenHash String         @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime       @default(now())
+}
+
+enum NodeType {
+  FOLDER
+  FILE
+}
+
+model Node {
+  id               String     @id @default(cuid())
+  ownerId          String
+  owner            User       @relation("owner", fields: [ownerId], references: [id], onDelete: Cascade)
+  parentId         String?
+  parent           Node?      @relation("tree", fields: [parentId], references: [id], onDelete: Cascade)
+  children         Node[]     @relation("tree")
+  type             NodeType
+  name             String
+  /// Size of the current version (files) - folders are 0.
+  size             BigInt     @default(0)
+  mimeType         String?
+  kind             String?
+  currentVersionId String?    @unique
+  currentVersion   FileVersion? @relation("current", fields: [currentVersionId], references: [id])
+  versions         FileVersion[] @relation("versions")
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+  /// All nodes trashed by one delete action share a batch id (restore restores the batch).
+  trashBatchId     String?
+  /// True on the node the user actually deleted (shown in Trash).
+  trashRoot        Boolean    @default(false)
+
+  shareLinks   ShareLink[]
+  folderShares FolderShare[]
+
+  @@index([ownerId, deletedAt])
+  @@index([parentId])
+  @@index([trashBatchId])
+}
+
+enum ScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  SKIPPED
+}
+
+model FileVersion {
+  id           String     @id @default(cuid())
+  nodeId       String
+  node         Node       @relation("versions", fields: [nodeId], references: [id], onDelete: Cascade)
+  currentOf    Node?      @relation("current")
+  storageKey   String     @unique
+  size         BigInt
+  sha256       String?
+  mimeType     String
+  uploadedById String
+  thumbnailKey String?
+  scanStatus   ScanStatus @default(PENDING)
+  createdAt    DateTime   @default(now())
+
+  @@index([nodeId, createdAt])
+  @@index([sha256])
+}
+
+enum UploadStatus {
+  PENDING
+  COMPLETED
+  ABORTED
+}
+
+model Upload {
+  id            String       @id @default(cuid())
+  /// The account billed for the bytes (folder owner for shared folders).
+  ownerId       String
+  owner         User         @relation("uploadOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  uploaderId    String
+  s3UploadId    String
+  storageKey    String       @unique
+  versionId     String       @unique
+  name          String
+  parentId      String?
+  size          BigInt
+  partSize      Int
+  mimeType      String
+  sha256        String?
+  status        UploadStatus @default(PENDING)
+  expiresAt     DateTime
+  createdAt     DateTime     @default(now())
+  completedAt   DateTime?
+
+  @@index([status, expiresAt])
+  @@index([ownerId, status])
+}
+
+model ShareLink {
+  id            String    @id @default(cuid())
+  token         String    @unique
+  nodeId        String
+  node          Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  createdById   String
+  createdBy     User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  passwordHash  String?
+  expiresAt     DateTime?
+  allowDownload Boolean   @default(true)
+  revokedAt     DateTime?
+  downloadCount Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([nodeId])
+}
+
+enum ShareRole {
+  VIEWER
+  EDITOR
+}
+
+model FolderShare {
+  id          String    @id @default(cuid())
+  nodeId      String
+  node        Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  granteeId   String
+  grantee     User      @relation("grantee", fields: [granteeId], references: [id], onDelete: Cascade)
+  role        ShareRole
+  createdById String
+  createdAt   DateTime  @default(now())
+
+  @@unique([nodeId, granteeId])
+  @@index([granteeId])
+}
+
+model Plan {
+  id                 String   @id
+  name               String
+  quotaBytes         BigInt
+  priceUsdMonth      Int
+  priceUsdYear       Int
+  priceUzsMonth      Int
+  priceUzsYear       Int
+  stripePriceMonthId String?  @unique
+  stripePriceYearId  String?  @unique
+  active             Boolean  @default(true)
+  sortOrder          Int      @default(0)
+  users              User[]
+}
+
+enum PaymentProviderId {
+  STRIPE
+  PAYME
+  CLICK
+  UZUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum BillingInterval {
+  month
+  year
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  userId                 String
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider               PaymentProviderId
+  /// Stripe subscription id; null for prepaid local-gateway periods.
+  providerSubscriptionId String?            @unique
+  planId                 String
+  interval               BillingInterval
+  status                 SubscriptionStatus
+  currentPeriodStart     DateTime
+  currentPeriodEnd       DateTime
+  cancelAtPeriodEnd      Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@index([userId, status])
+  @@index([status, currentPeriodEnd])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+/// One purchase through a local gateway (Payme/Click/Uzum): a prepaid month or year.
+model PaymentOrder {
+  id         String            @id @default(cuid())
+  /// Short numeric id shown to the gateway as account.order_id
+  number     Int               @unique @default(autoincrement())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   PaymentProviderId
+  planId     String
+  interval   BillingInterval
+  /// Minor units (tiyin for UZS)
+  amount     Int
+  currency   String
+  status     OrderStatus       @default(PENDING)
+  createdAt  DateTime          @default(now())
+  paidAt     DateTime?
+  cancelledAt DateTime?
+
+  paymeTransactions PaymeTransaction[]
+}
+
+/// Payme Merchant API transaction record. States: 1 created, 2 performed, -1 cancelled, -2 cancelled after perform.
+model PaymeTransaction {
+  id          String       @id @default(cuid())
+  paymeId     String       @unique
+  orderId     String
+  order       PaymentOrder @relation(fields: [orderId], references: [id])
+  amount      Int
+  state       Int
+  /// Payme's own timestamp (ms) from CreateTransaction
+  paymeTime   BigInt
+  createTime  BigInt
+  performTime BigInt       @default(0)
+  cancelTime  BigInt       @default(0)
+  reason      Int?
+
+  @@index([orderId])
+  @@index([createTime])
+}
+
+enum InvoiceStatus {
+  PAID
+  OPEN
+  VOID
+  REFUNDED
+}
+
+model Invoice {
+  id                String            @id @default(cuid())
+  number            String            @unique
+  userId            String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          PaymentProviderId
+  providerInvoiceId String?           @unique
+  amount            Int
+  currency          String
+  status            InvoiceStatus
+  planId            String
+  interval          BillingInterval
+  periodStart       DateTime
+  periodEnd         DateTime
+  paidAt            DateTime?
+  hostedUrl         String?
+  createdAt         DateTime          @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  eventId     String
+  type        String
+  receivedAt  DateTime @default(now())
+  processedAt DateTime?
+  error       String?
+
+  @@unique([provider, eventId])
+}
+
+enum NoticeKind {
+  GRACE_STARTED
+  READ_ONLY
+  DELETION_30
+  DELETION_7
+  DELETION_1
+  PURGED
+  RENEWAL_REMINDER
+}
+
+model QuotaNotice {
+  id       String     @id @default(cuid())
+  userId   String
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind     NoticeKind
+  /// Distinguishes repeated cycles (e.g. the deletion date ISO string)
+  cycleKey String
+  sentAt   DateTime   @default(now())
+
+  @@unique([userId, kind, cycleKey])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  userId    String?
+  action    String
+  meta      Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+enum AbuseKind {
+  DMCA
+  ABUSE
+  MALWARE
+}
+
+enum AbuseStatus {
+  OPEN
+  ACTIONED
+  REJECTED
+}
+
+model AbuseReport {
+  id            String      @id @default(cuid())
+  kind          AbuseKind
+  shareToken    String?
+  nodeId        String?
+  reporterEmail String
+  reporterName  String?
+  description   String
+  status        AbuseStatus @default(OPEN)
+  createdAt     DateTime    @default(now())
+  resolvedAt    DateTime?
+  resolution    String?
+}

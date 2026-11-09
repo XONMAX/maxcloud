@@ -1,0 +1,22 @@
+// Loaded before every test file. Integration tests use a separate database + bucket.
+process.env.NODE_ENV = 'test';
+process.env.DATABASE_URL ??= 'postgresql://maxcloud:maxcloud@localhost:5432/maxcloud_test';
+if (!process.env.DATABASE_URL.includes('test')) throw new Error('Refusing to run tests against a non-test DATABASE_URL');
+process.env.REDIS_URL ??= 'redis://localhost:6379/1';
+process.env.JWT_SECRET ??= 'test-jwt-secret-0123456789abcdef0123456789';
+process.env.APP_ENCRYPTION_KEY ??= 'a'.repeat(64);
+process.env.WEB_ORIGIN ??= 'http://localhost:3000';
+process.env.S3_ENDPOINT ??= 'http://localhost:7070';
+process.env.S3_BUCKET ??= 'maxcloud-test';
+process.env.S3_ACCESS_KEY_ID ??= 'maxcloud';
+process.env.S3_SECRET_ACCESS_KEY ??= 'maxcloud-dev-secret';
+process.env.S3_REGION ??= 'us-east-1';
+process.env.S3_FORCE_PATH_STYLE = 'true';
+process.env.S3_SSE = 'none';
+process.env.STORAGE_PROVIDER = 'local';
+process.env.RATE_LIMIT_DISABLED ??= 'true';
+process.env.LOG_LEVEL = 'silent';
+process.env.STRIPE_SECRET_KEY ??= 'sk_test_dummy';
+process.env.STRIPE_WEBHOOK_SECRET ??= 'whsec_test_secret';
+process.env.PAYME_MERCHANT_ID ??= 'test-merchant';
+process.env.PAYME_KEY ??= 'test-payme-key';
